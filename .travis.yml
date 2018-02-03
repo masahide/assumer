@@ -14,20 +14,20 @@ install:
   - sudo snap install snapcraft --candidate --classic
 script:
   - make ci
-  - test -n "$TRAVIS_TAG" || go run main.go --skip-validate --skip-publish
+  - test -n "$TRAVIS_TAG" || go run cmd/assumer/main.go --skip-validate --skip-publish
 after_success:
   - bash <(curl -s https://codecov.io/bash)
   - test -n "$TRAVIS_TAG" && docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-  - test -n "$TRAVIS_TAG" && go run main.go
-  - make static
-deploy:
-  provider: pages
-  skip_cleanup: true
-  github_token: $GITHUB_TOKEN
-  repo: goreleaser/goreleaser.github.io
-  local_dir: ./dist/goreleaser.github.io
-  target_branch: master
-  on:
-    master: true
+  - test -n "$TRAVIS_TAG" && go run cmd/assumer/main.go
+  #- make static
+# deploy:
+#  provider: pages
+#  skip_cleanup: true
+#  github_token: $GITHUB_TOKEN
+#  repo: masahide/assumer.github.io
+#  local_dir: ./dist/assumer.github.io
+#  target_branch: master
+#  on:
+#    master: true
 notifications:
   email: false

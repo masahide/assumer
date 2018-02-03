@@ -48,24 +48,24 @@ lint:
 ci: build test lint
 .PHONY: ci
 
-# Build a beta version of goreleaser
+# Build a beta version of assumer
 build:
 	go build -o dist/assumer cmd/assumer/main.go
 .PHONY: build
 
-# Generate the static documentation
-static:
-	@rm -rf dist/goreleaser.github.io
-	@mkdir -p dist
-	@git clone https://github.com/goreleaser/goreleaser.github.io.git dist/goreleaser.github.io
-	@rm -rf dist/goreleaser.github.io/theme
-	@static-docs \
-		--in docs \
-		--out dist/goreleaser.github.io \
-		--title GoReleaser \
-		--subtitle "Deliver Go binaries as fast and easily as possible" \
-		--google UA-106198408-1
-.PHONY: static
+## Generate the static documentation
+#static:
+#	@rm -rf dist/assumer.github.io
+#	@mkdir -p dist
+#	@git clone https://github.com/masahide/masahide.github.io.git dist/masahide.github.io
+#	@rm -rf dist/masahide.github.io/theme
+#	@static-docs \
+#		--in docs \
+#		--out dist/.github.io \
+#		--title GoReleaser \
+#		--subtitle "Deliver Go binaries as fast and easily as possible" \
+#		--google UA-106198408-1
+#.PHONY: static
 
 # Show to-do items per file.
 todo:
