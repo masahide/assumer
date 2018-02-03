@@ -50,7 +50,7 @@ ci: build test lint
 
 # Build a beta version of goreleaser
 build:
-	go build
+	go build -o dist/assumer cmd/assumer/main.go
 .PHONY: build
 
 # Generate the static documentation
