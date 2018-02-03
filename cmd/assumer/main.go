@@ -68,7 +68,7 @@ func init() {
 	flag.BoolVar(&showVersion, "version", false, "show version")
 	flag.Parse()
 	if showVersion {
-		fmt.Printf("version %v, commit %v, built at %v", version, commit, date)
+		fmt.Printf("%s version %v, commit %v, built at %v\n", filepath.Base(os.Args[0]), version, commit, date)
 		os.Exit(0)
 	}
 
