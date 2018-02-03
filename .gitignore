@@ -14,6 +14,7 @@
 .glide/
 
 dist/
+assumer
 vendor
 coverage.txt
 goreleaser
