@@ -60,7 +60,7 @@ var (
 	env     environments
 	version = "dev"
 	commit  = "none"
-	date    = "unkown"
+	date    = "unknown"
 )
 
 func init() {
