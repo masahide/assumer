@@ -50,7 +50,7 @@ ci: build test lint
 
 # Build a beta version of assumer
 build:
-	go build -o dist/assumer cmd/assumer/main.go
+	go build -o assumer cmd/assumer/main.go
 .PHONY: build
 
 ## Generate the static documentation
