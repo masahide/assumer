@@ -17,9 +17,8 @@ script:
   - make ci
 after_success:
   - bash <(curl -s https://codecov.io/bash)
-  - test -n "$TRAVIS_TAG" && curl -sL https://git.io/goreleaser | bash
   - test -n "$TRAVIS_TAG" && docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-  - test -n "$TRAVIS_TAG" && go run cmd/assumer/main.go
+  - test -n "$TRAVIS_TAG" && curl -sL https://git.io/goreleaser | bash
   #- make static
 # deploy:
 #  provider: pages
