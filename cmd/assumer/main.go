@@ -99,7 +99,7 @@ func main() {
 	setEnv(conf, res)
 	args := flag.Args()
 	if len(args) <= 1 {
-		envExportPrints()
+		envExportPrints(os.Stdout)
 		return
 	}
 	cmd := exec.Command(args[1], args[2:]...) // nolint: gas
@@ -118,17 +118,17 @@ func getProfileEnv() (profile string) {
 	return env.AWSProfile
 }
 
-func envExportPrints() {
-	envExportPrint("AWS_ACCESS_KEY_ID")
-	envExportPrint("AWS_SECRET_ACCESS_KEY")
-	envExportPrint("AWS_SESSION_TOKEN")
-	envExportPrint("AWS_REGION")
+func envExportPrints(out io.Writer) {
+	envExportPrint(out, "AWS_ACCESS_KEY_ID")
+	envExportPrint(out, "AWS_SECRET_ACCESS_KEY")
+	envExportPrint(out, "AWS_SESSION_TOKEN")
+	envExportPrint(out, "AWS_REGION")
 }
 
-func envExportPrint(env string) {
+func envExportPrint(out io.Writer, env string) {
 	value := os.Getenv(env)
 	if len(value) > 0 {
-		fmt.Printf("export %s=\"%s\"\n", env, value)
+		fmt.Fprintf(out, "export %s=\"%s\"\n", env, value)
 	}
 }
 

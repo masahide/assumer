@@ -1,13 +1,17 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 )
 
 const (
@@ -36,6 +40,40 @@ func TestGetProfileEnv(t *testing.T) {
 	}
 }
 
+func TestEnvExportPrints(t *testing.T) {
+	var vtests = []struct {
+		setEnvs   []string
+		unsetEnvs []string
+		expected  []string
+	}{
+		{
+			[]string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION"},
+			[]string{},
+			[]string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION"},
+		}, {
+			[]string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"},
+			[]string{"AWS_REGION"},
+			[]string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"},
+		},
+	}
+	for _, vt := range vtests {
+		for _, env := range vt.setEnvs {
+			os.Setenv(env, env)
+		}
+		for _, env := range vt.unsetEnvs {
+			os.Unsetenv(env)
+		}
+		var b bytes.Buffer
+		envExportPrints(&b)
+		expected := ""
+		for _, env := range vt.expected {
+			expected += fmt.Sprintf("export %s=\"%s\"\n", env, env)
+		}
+		if b.String() != expected {
+			t.Errorf("setEnvs:%q, unsetEnvs:%q, envExportPrint() = %q, want %q", vt.setEnvs, vt.unsetEnvs, b.String(), expected)
+		}
+	}
+}
 func TestAwsFilePath(t *testing.T) {
 	var vtests = []struct {
 		envValue         string
@@ -66,6 +104,50 @@ func TestAwsFilePath(t *testing.T) {
 		r := awsFilePath(vt.envValue, vt.defaultPathParam, testHomeA)
 		if r != vt.expected {
 			t.Errorf("awsFilePath(%q, %q) = %q, want %q", vt.envValue, vt.defaultPathParam, r, vt.expected)
+		}
+	}
+}
+
+type mockedSts struct {
+	stsiface.STSAPI
+	Resp sts.AssumeRoleOutput
+}
+
+func (m mockedSts) AssumeRole(in *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
+	// Only need to return mocked response output
+	return &m.Resp, nil
+}
+
+func TestAssumeRole(t *testing.T) {
+	cases := []struct {
+		Resp        sts.AssumeRoleOutput
+		expectedKey string
+	}{
+		{
+			Resp: sts.AssumeRoleOutput{
+				AssumedRoleUser: &sts.AssumedRoleUser{
+					Arn:           aws.String("arn:..."),
+					AssumedRoleId: aws.String("xxxx"),
+				},
+				Credentials: &sts.Credentials{
+					AccessKeyId:     aws.String("id"),
+					Expiration:      &time.Time{},
+					SecretAccessKey: aws.String("key"),
+					SessionToken:    aws.String("token"),
+				},
+			},
+			expectedKey: "id",
+		},
+	}
+
+	for i, c := range cases {
+		mock := mockedSts{Resp: c.Resp}
+		res, err := assumeRole(&mock, "")
+		if err != nil {
+			t.Fatalf("%d, unexpected error:%s", i, err)
+		}
+		if c.expectedKey != *res.Credentials.AccessKeyId {
+			t.Fatalf("%d, expected %q messages, got %q", i, c.expectedKey, res.Credentials.AccessKeyId)
 		}
 	}
 }
@@ -139,6 +221,22 @@ func TestGetProfileConfig(t *testing.T) {
 		}
 		if res != vt.expected {
 			t.Errorf("getProfileConfig(%q); = %q, want %q", vt.profile, res, vt.expected)
+		}
+	}
+}
+func TestGetExitCode(t *testing.T) {
+	var vtests = []struct {
+		cmd      []string
+		expected int
+	}{
+		{[]string{"ls", "-abcefghijk"}, 2},
+		{[]string{"ls", "-la"}, 0},
+	}
+	for _, vt := range vtests {
+		cmd := exec.Command(vt.cmd[0], vt.cmd[1:]...) // nolint: gas
+		res := getExitCode(cmd.Run())
+		if res != vt.expected {
+			t.Errorf("getExitCode(cmd:%q); = %q, want %q", vt.cmd, res, vt.expected)
 		}
 	}
 }
