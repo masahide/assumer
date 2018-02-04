@@ -39,6 +39,37 @@ func TestGetProfileEnv(t *testing.T) {
 		}
 	}
 }
+func TestSetEnv(t *testing.T) {
+	prof := profileConfig{
+		Region: "region",
+	}
+	role := &sts.AssumeRoleOutput{
+		Credentials: &sts.Credentials{
+			AccessKeyId:     aws.String("id"),
+			SecretAccessKey: aws.String("key"),
+			SessionToken:    aws.String("token"),
+		},
+	}
+	setEnv(prof, role)
+	if os.Getenv("AWS_PROFILE") != "" {
+		t.Error("AWS_PROFILE")
+	}
+	if os.Getenv("AWS_DEFAULT_PROFILE") != "" {
+		t.Error("AWS_DEFAULT_PROFILE")
+	}
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "id" {
+		t.Error("id")
+	}
+	if os.Getenv("AWS_SECRET_ACCESS_KEY") != "key" {
+		t.Error("key")
+	}
+	if os.Getenv("AWS_SESSION_TOKEN") != "token" {
+		t.Error("token")
+	}
+	if os.Getenv("AWS_REGION") != "region" {
+		t.Error("region")
+	}
+}
 
 func TestEnvExportPrints(t *testing.T) {
 	var vtests = []struct {

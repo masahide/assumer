@@ -88,15 +88,18 @@ func init() {
 }
 
 func main() {
-	conf, err := getProfileConfig(getProfileEnv())
-	if err != nil {
-		log.Fatal(err)
+	profile := getProfileEnv()
+	if len(profile) > 0 {
+		conf, err := getProfileConfig(profile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		res, err := getCred(conf)
+		if err != nil {
+			log.Fatal(err)
+		}
+		setEnv(conf, res)
 	}
-	res, err := getCred(conf)
-	if err != nil {
-		log.Fatal(err)
-	}
-	setEnv(conf, res)
 	args := flag.Args()
 	if len(args) <= 1 {
 		envExportPrints(os.Stdout)
