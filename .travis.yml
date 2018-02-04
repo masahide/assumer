@@ -1,6 +1,5 @@
 dist: trusty
 sudo: required
-group: deprecated-2017Q4
 language: go
 go: 1.9
 services:
