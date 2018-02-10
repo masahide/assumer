@@ -27,13 +27,13 @@ For example,
 For RHEL/CentOS:
 
 ```bash
-sudo yum install https://github.com/masahide/assumer/releases/download/v0.1.4/assumer_amd64.rpm
+sudo yum install https://github.com/masahide/assumer/releases/download/v0.1.5/assumer_amd64.rpm
 ```
 
 For Ubuntu/Debian:
 
 ```bash
-wget -qO /tmp/assumer_amd64.deb https://github.com/masahide/assumer/releases/download/v0.1.4/assumer_amd64.deb && sudo dpkg -i /tmp/assumer_amd64.deb
+wget -qO /tmp/assumer_amd64.deb https://github.com/masahide/assumer/releases/download/v0.1.5/assumer_amd64.deb && sudo dpkg -i /tmp/assumer_amd64.deb
 ```
 
 ### macOS
