@@ -101,11 +101,11 @@ func main() {
 		setEnv(conf, res)
 	}
 	args := flag.Args()
-	if len(args) <= 1 {
+	if len(args) <= 0 {
 		envExportPrints(os.Stdout)
 		return
 	}
-	cmd := exec.Command(args[1], args[2:]...) // nolint: gas
+	cmd := exec.Command(args[0], args[1:]...) // nolint: gas
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
