@@ -49,6 +49,10 @@ brew install assumer
 
 ## Usage
 
+```bash
+$ AWS_PROFILE=foo assumer some_command [arg1 arg2...]
+```
+
 Refer to "[aswrap](https://github.com/fujiwara/aswrap/blob/master/README.md#usage)" because it is the same "[usage as aswrap](https://github.com/fujiwara/aswrap/blob/master/README.md#usage)"
 
 
