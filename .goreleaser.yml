@@ -1,5 +1,8 @@
 env:
   - GO111MODULE=on
+before:
+  hooks:
+    - go mod download
 builds:
   -
     main: cmd/assumer/main.go
@@ -20,11 +23,10 @@ changelog:
       - Merge pull request
       - Merge branch
 dockers:
-  - image: masahide/assumer
-    tag_templates:
-    - '{{ .Tag }}'
-    - 'v{{ .Major }}.{{ .Minor }}'
-    - 'latest'
+  - image_templates:
+    - 'masahide/assumer:{{ .Tag }}'
+    - 'masahide/assumer:v{{ .Major }}.{{ .Minor }}'
+    - 'masahide/assumer:latest'
 archives:
   -
     name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
