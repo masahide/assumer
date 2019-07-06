@@ -42,7 +42,7 @@ brew:
   description: AWS assume role credential wrapper
   test: |
     system "#{bin}/assumer -v"
-fpm:
+nfpms:
   name_template: '{{ .ProjectName }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
   homepage:  https://github.com/masahide/assumer
   description: AWS assume role credential wrapper

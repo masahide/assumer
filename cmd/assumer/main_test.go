@@ -178,7 +178,7 @@ func TestAssumeRole(t *testing.T) {
 			t.Fatalf("%d, unexpected error:%s", i, err)
 		}
 		if c.expectedKey != *res.Credentials.AccessKeyId {
-			t.Fatalf("%d, expected %q messages, got %q", i, c.expectedKey, res.Credentials.AccessKeyId)
+			t.Fatalf("%d, expected %q messages, got %q", i, c.expectedKey, *res.Credentials.AccessKeyId)
 		}
 	}
 }
@@ -258,16 +258,16 @@ func TestGetProfileConfig(t *testing.T) {
 func TestGetExitCode(t *testing.T) {
 	var vtests = []struct {
 		cmd      []string
-		expected int
+		expected bool
 	}{
-		{[]string{"ls", "-abcefghijk"}, 2},
-		{[]string{"ls", "-la"}, 0},
+		{[]string{"ls", "-abcefghijk"}, false},
+		{[]string{"ls", "-la"}, true},
 	}
 	for _, vt := range vtests {
 		cmd := exec.Command(vt.cmd[0], vt.cmd[1:]...) // nolint: gas
 		res := getExitCode(cmd.Run())
-		if res != vt.expected {
-			t.Errorf("getExitCode(cmd:%q); = %q, want %q", vt.cmd, res, vt.expected)
+		if res == 0 != vt.expected {
+			t.Errorf("getExitCode(cmd:%q); = %v, want %v", vt.cmd, res, vt.expected)
 		}
 	}
 }
