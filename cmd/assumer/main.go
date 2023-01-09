@@ -20,7 +20,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/go-ini/ini"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/mitchellh/go-homedir"
 )
 
 const (
@@ -80,7 +79,7 @@ func init() {
 		log.Fatal("Member must have MAX_DURATION less than or equal to 3600")
 	}
 	if len(env.Home) == 0 {
-		env.Home, err = homedir.Dir()
+		env.Home, err = os.UserHomeDir()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -143,11 +142,12 @@ func getExitCode(err error) int {
 	if !ok {
 		log.Fatal(err)
 	}
-	s, ok := exitErr.Sys().(syscall.WaitStatus)
-	if !ok {
+	s := exitErr.Sys()
+	switch s.(type) {
+	case syscall.WaitStatus:
 		log.Fatal(err)
 	}
-	return s.ExitStatus()
+	return exitErr.ExitCode()
 }
 
 func setEnv(conf profileConfig, assumeRole *sts.AssumeRoleOutput) {
