@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/json"
 	"flag"
@@ -10,15 +11,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"syscall"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-	"github.com/go-ini/ini"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -62,7 +59,20 @@ var (
 	date    = "unknown"
 )
 
-func init() {
+// STSGetSessionToken mock
+type STSGetSessionToken interface {
+	GetSessionToken(ctx context.Context, params *sts.GetSessionTokenInput, optFns ...func(*sts.Options)) (*sts.GetSessionTokenOutput, error)
+}
+
+type assumer struct {
+	stsAPI STSGetSessionToken
+}
+
+func (a *assumer) getToken() (*sts.GetSessionTokenOutput, error) {
+	return a.stsAPI.GetSessionToken(context.TODO(), &sts.GetSessionTokenInput{})
+}
+
+func main() {
 	showVersion := false
 	flag.BoolVar(&showVersion, "version", false, "show version")
 	flag.Parse()
@@ -84,20 +94,21 @@ func init() {
 			log.Fatal(err)
 		}
 	}
-}
-
-func main() {
 	profile := getProfileEnv()
 	if len(profile) > 0 {
-		conf, err := getProfileConfig(profile)
+		cfg, err := config.LoadDefaultConfig(
+			context.TODO(),
+			config.WithSharedConfigProfile(profile),
+		)
 		if err != nil {
 			log.Fatal(err)
 		}
-		res, err := getCred(conf)
+		a := assumer{stsAPI: sts.NewFromConfig(cfg)}
+		token, err := a.getToken()
 		if err != nil {
 			log.Fatal(err)
 		}
-		setEnv(conf, res)
+		setEnv(cfg, token)
 	}
 	args := flag.Args()
 	if len(args) <= 0 {
@@ -108,8 +119,8 @@ func main() {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	code := getExitCode(cmd.Run())
-	os.Exit(code)
+	cmd.Run()
+	os.Exit(cmd.ProcessState.ExitCode())
 }
 
 // see: https://github.com/boto/botocore/blob/2f0fa46380a59d606a70d76636d6d001772d8444/botocore/session.py#L82
@@ -134,30 +145,14 @@ func envExportPrint(out io.Writer, env string) {
 	}
 }
 
-func getExitCode(err error) int {
-	if err == nil {
-		return 0
-	}
-	exitErr, ok := err.(*exec.ExitError)
-	if !ok {
-		log.Fatal(err)
-	}
-	s := exitErr.Sys()
-	switch s.(type) {
-	case syscall.WaitStatus:
-		log.Fatal(err)
-	}
-	return exitErr.ExitCode()
-}
-
-func setEnv(conf profileConfig, assumeRole *sts.AssumeRoleOutput) {
-	os.Unsetenv("AWS_PROFILE")                                                  // nolint errcheck
-	os.Unsetenv("AWS_DEFAULT_PROFILE")                                          // nolint errcheck
-	os.Setenv("AWS_ACCESS_KEY_ID", *assumeRole.Credentials.AccessKeyId)         // nolint errcheck
-	os.Setenv("AWS_SECRET_ACCESS_KEY", *assumeRole.Credentials.SecretAccessKey) // nolint errcheck
-	os.Setenv("AWS_SESSION_TOKEN", *assumeRole.Credentials.SessionToken)        // nolint errcheck
-	if len(conf.Region) > 0 {
-		os.Setenv("AWS_REGION", conf.Region) // nolint errcheck
+func setEnv(cfg aws.Config, identify *sts.GetSessionTokenOutput) {
+	os.Unsetenv("AWS_PROFILE")                                                // nolint errcheck
+	os.Unsetenv("AWS_DEFAULT_PROFILE")                                        // nolint errcheck
+	os.Setenv("AWS_ACCESS_KEY_ID", *identify.Credentials.AccessKeyId)         // nolint errcheck
+	os.Setenv("AWS_SECRET_ACCESS_KEY", *identify.Credentials.SecretAccessKey) // nolint errcheck
+	os.Setenv("AWS_SESSION_TOKEN", *identify.Credentials.SessionToken)        // nolint errcheck
+	if len(cfg.Region) > 0 {
+		os.Setenv("AWS_REGION", cfg.Region) // nolint errcheck
 	}
 }
 
@@ -206,6 +201,7 @@ func storeCache(conf profileConfig, res *sts.AssumeRoleOutput) error {
 	return err
 }
 
+/*
 func getCred(conf profileConfig) (*sts.AssumeRoleOutput, error) {
 	res, err := loadCache(conf)
 	if err != nil {
@@ -241,37 +237,8 @@ func awsFilePath(filePath, defaultPath, home string) string {
 
 	return filepath.Join(home, defaultPath)
 }
-func getProfileConfig(profile string) (res profileConfig, err error) {
-	res, err = getProfile(profile, confPath)
-	if err != nil {
-		return res, err
-	}
-	if len(res.SrcProfile) > 0 && len(res.RoleARN) > 0 {
-		return res, err
-	}
-	return getProfile(profile, credPath)
-}
 
-func getProfile(profile, confFileNmae string) (res profileConfig, err error) {
-	cnfPath := awsFilePath(env.AWSConfigFile, confFileNmae, env.Home)
-	config, err := ini.Load(cnfPath)
-	if err != nil {
-		return res, fmt.Errorf("failed to load shared credentials file. err:%s", err)
-	}
-	sec, err := config.GetSection(profile)
-	if err != nil {
-		// reference code -> https://github.com/aws/aws-sdk-go/blob/fae5afd566eae4a51e0ca0c38304af15618b8f57/aws/session/shared_config.go#L173-L181
-		sec, err = config.GetSection(fmt.Sprintf("profile %s", profile))
-		if err != nil {
-			return res, fmt.Errorf("not found ini section err:%s", err)
-		}
-	}
-	res.RoleARN = sec.Key(iniRoleARN).String()
-	res.SrcProfile = sec.Key(iniSrcProfile).String()
-	res.Region = sec.Key(iniRegion).String()
-	return res, nil
-}
-
+*/
 func createCacheKey(roleARN, sessionName string) string {
 	h := sha1.New()
 	io.WriteString(h, roleARN)     // nolint errcheck

@@ -2,16 +2,17 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/aws-sdk-go-v2/service/sts/types"
 )
 
 const (
@@ -40,17 +41,21 @@ func TestGetProfileEnv(t *testing.T) {
 	}
 }
 func TestSetEnv(t *testing.T) {
-	prof := profileConfig{
-		Region: "region",
+	cfg, err := config.LoadDefaultConfig(
+		context.TODO(),
+		config.WithRegion("region"),
+	)
+	if err != nil {
+		t.Fatal()
 	}
-	role := &sts.AssumeRoleOutput{
-		Credentials: &sts.Credentials{
+	output := &sts.GetSessionTokenOutput{
+		Credentials: &types.Credentials{
 			AccessKeyId:     aws.String("id"),
 			SecretAccessKey: aws.String("key"),
 			SessionToken:    aws.String("token"),
 		},
 	}
-	setEnv(prof, role)
+	setEnv(cfg, output)
 	if os.Getenv("AWS_PROFILE") != "" {
 		t.Error("AWS_PROFILE")
 	}
@@ -105,172 +110,7 @@ func TestEnvExportPrints(t *testing.T) {
 		}
 	}
 }
-func TestAwsFilePath(t *testing.T) {
-	var vtests = []struct {
-		envValue         string
-		defaultPathParam string
-		expected         string
-	}{
-		{
-			envValue:         filepath.Join("~", awsCred),
-			defaultPathParam: awsCred,
-			expected:         filepath.Join(testHomeA, awsCred),
-		}, {
-			envValue:         filepath.Join("~", awsConf),
-			defaultPathParam: awsConf,
-			expected:         filepath.Join(testHomeA, awsConf),
-		}, {
-			envValue:         "",
-			defaultPathParam: ".aws/credentials",
-			expected:         filepath.Join(testHomeA, awsCred),
-		}, {
-			envValue:         "",
-			defaultPathParam: awsConf,
-			expected:         filepath.Join(testHomeA, awsConf),
-		},
-	}
 
-	env.Home = testHomeA
-	for _, vt := range vtests {
-		r := awsFilePath(vt.envValue, vt.defaultPathParam, testHomeA)
-		if r != vt.expected {
-			t.Errorf("awsFilePath(%q, %q) = %q, want %q", vt.envValue, vt.defaultPathParam, r, vt.expected)
-		}
-	}
-}
-
-type mockedSts struct {
-	stsiface.STSAPI
-	Resp sts.AssumeRoleOutput
-}
-
-func (m mockedSts) AssumeRole(in *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
-	// Only need to return mocked response output
-	return &m.Resp, nil
-}
-
-func TestAssumeRole(t *testing.T) {
-	cases := []struct {
-		Resp        sts.AssumeRoleOutput
-		expectedKey string
-	}{
-		{
-			Resp: sts.AssumeRoleOutput{
-				AssumedRoleUser: &sts.AssumedRoleUser{
-					Arn:           aws.String("arn:..."),
-					AssumedRoleId: aws.String("xxxx"),
-				},
-				Credentials: &sts.Credentials{
-					AccessKeyId:     aws.String("id"),
-					Expiration:      &time.Time{},
-					SecretAccessKey: aws.String("key"),
-					SessionToken:    aws.String("token"),
-				},
-			},
-			expectedKey: "id",
-		},
-	}
-
-	for i, c := range cases {
-		mock := mockedSts{Resp: c.Resp}
-		res, err := assumeRole(&mock, "")
-		if err != nil {
-			t.Fatalf("%d, unexpected error:%s", i, err)
-		}
-		if c.expectedKey != *res.Credentials.AccessKeyId {
-			t.Fatalf("%d, expected %q messages, got %q", i, c.expectedKey, *res.Credentials.AccessKeyId)
-		}
-	}
-}
-
-func TestGetProfileConfig(t *testing.T) {
-	var vtests = []struct {
-		home     string
-		profile  string
-		err      *string
-		expected profileConfig
-	}{
-		{
-			testHomeA,
-			"testprof",
-			nil,
-			profileConfig{
-				RoleARN:    "arn:aws:iam::123456789012:role/Admin",
-				Region:     "ap-northeast-1",
-				SrcProfile: "srcprof",
-				//SrcRegion:    "us-east-1",
-				//SrcAccountID: "000000000000",
-			},
-		},
-		{
-			testHomeB,
-			"not_profile_prefix",
-			nil,
-			profileConfig{
-				RoleARN:    "arn:aws:iam::123456789011:role/a",
-				Region:     "ap-northeast-1",
-				SrcProfile: "srcprof",
-				//SrcRegion:    "us-east-1",
-				//SrcAccountID: "000000000000",
-			},
-		},
-		{
-			testHomeB,
-			"src_default",
-			nil,
-			profileConfig{
-				RoleARN:    "arn:aws:iam::123456789011:role/b",
-				Region:     "ap-northeast-1",
-				SrcProfile: "default",
-				//SrcRegion:    "us-east-1",
-				//SrcAccountID: "000000000000",
-			},
-		},
-		{
-			testHomeB,
-			"none",
-			aws.String("not found ini section err:section 'profile none' does not exist"),
-			profileConfig{
-				RoleARN:    "",
-				Region:     "",
-				SrcProfile: "",
-				//SrcRegion:    "us-east-1",
-				//SrcAccountID: "000000000000",
-			},
-		},
-	}
-	for _, vt := range vtests {
-		env.Home = vt.home
-		res, err := getProfileConfig(vt.profile)
-		if err != nil && vt.err == nil {
-			t.Errorf("err getProfileConfig(%q) = err:%s", vt.profile, err)
-		}
-		if err != nil {
-			if err.Error() != *vt.err {
-				t.Errorf("err getProfileConfig(%q) = err:%s", vt.profile, err)
-			}
-		}
-		if res != vt.expected {
-			t.Errorf("getProfileConfig(%q); = %q, want %q", vt.profile, res, vt.expected)
-		}
-	}
-}
-func TestGetExitCode(t *testing.T) {
-	var vtests = []struct {
-		cmd      []string
-		expected bool
-	}{
-		{[]string{"ls", "-abcefghijk"}, false},
-		{[]string{"ls", "-la"}, true},
-	}
-	for _, vt := range vtests {
-		cmd := exec.Command(vt.cmd[0], vt.cmd[1:]...) // nolint: gas
-		res := getExitCode(cmd.Run())
-		if res == 0 != vt.expected {
-			t.Errorf("getExitCode(cmd:%q); = %v, want %v", vt.cmd, res, vt.expected)
-		}
-	}
-}
 func TestCreateCacheKey(t *testing.T) {
 	var vtests = []struct {
 		profile  string
@@ -295,11 +135,11 @@ func TestLoadStoreCache(t *testing.T) {
 	}{
 		{
 			sts.AssumeRoleOutput{
-				AssumedRoleUser: &sts.AssumedRoleUser{
+				AssumedRoleUser: &types.AssumedRoleUser{
 					Arn:           aws.String("arn:aws:sts::000000000000:assumed-role/AdminX/test"),
 					AssumedRoleId: aws.String("XXXXXXXXXXXXXXXXXXXXX:test"),
 				},
-				Credentials: &sts.Credentials{
+				Credentials: &types.Credentials{
 					AccessKeyId:     aws.String("XXXXXXXXXXXXXXXXXXXX"),
 					Expiration:      aws.Time(time.Now().Add(3600 * time.Second)),
 					SecretAccessKey: aws.String("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
@@ -314,7 +154,7 @@ func TestLoadStoreCache(t *testing.T) {
 		},
 		{
 			sts.AssumeRoleOutput{
-				Credentials: &sts.Credentials{
+				Credentials: &types.Credentials{
 					Expiration: aws.Time(time.Now().Add(-3600 * time.Second)),
 				},
 			},
@@ -339,13 +179,13 @@ func TestLoadStoreCache(t *testing.T) {
 			t.Fatal(err)
 		}
 		if *res.Credentials.AccessKeyId != *vt.res.Credentials.AccessKeyId {
-			t.Errorf("load(%q); = %q, want %q", vt.pc, res, vt.res)
+			t.Errorf("load(%q); = %v want %v", vt.pc, res, vt.res)
 		}
 		if *res.Credentials.SecretAccessKey != *vt.res.Credentials.SecretAccessKey {
-			t.Errorf("load(%q); = %q, want %q", vt.pc, res, vt.res)
+			t.Errorf("load(%q); = %v, want %v", vt.pc, res, vt.res)
 		}
 		if *res.Credentials.SessionToken != *vt.res.Credentials.SessionToken {
-			t.Errorf("load(%q); = %q, want %q", vt.pc, res, vt.res)
+			t.Errorf("load(%q); = %v, want %v", vt.pc, res, vt.res)
 		}
 	}
 	os.RemoveAll(filepath.Join(testHomeA, cacheDir))
