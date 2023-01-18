@@ -5,9 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -109,85 +107,4 @@ func TestEnvExportPrints(t *testing.T) {
 			t.Errorf("setEnvs:%q, unsetEnvs:%q, envExportPrint() = %q, want %q", vt.setEnvs, vt.unsetEnvs, b.String(), expected)
 		}
 	}
-}
-
-func TestCreateCacheKey(t *testing.T) {
-	var vtests = []struct {
-		profile  string
-		roleARN  string
-		expected string
-	}{
-		{"a", "b", "da23614e02469a0d7c7bd1bdab5c9c474b1904dc"},
-		{"testprof", "arn:aws:iam::123456789012:role/Admin", "44b61a3deae05f4e4bb01555bc3966dcae87f121"},
-	}
-	for _, vt := range vtests {
-		res := createCacheKey(vt.profile, vt.roleARN)
-		if res != vt.expected {
-			t.Errorf("createCacheKey(%q, %q); = %q, want %q", vt.profile, vt.roleARN, res, vt.expected)
-		}
-	}
-}
-func TestLoadStoreCache(t *testing.T) {
-	var vtests = []struct {
-		res    sts.AssumeRoleOutput
-		pc     profileConfig
-		expire bool
-	}{
-		{
-			sts.AssumeRoleOutput{
-				AssumedRoleUser: &types.AssumedRoleUser{
-					Arn:           aws.String("arn:aws:sts::000000000000:assumed-role/AdminX/test"),
-					AssumedRoleId: aws.String("XXXXXXXXXXXXXXXXXXXXX:test"),
-				},
-				Credentials: &types.Credentials{
-					AccessKeyId:     aws.String("XXXXXXXXXXXXXXXXXXXX"),
-					Expiration:      aws.Time(time.Now().Add(3600 * time.Second)),
-					SecretAccessKey: aws.String("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
-					SessionToken:    aws.String("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
-				},
-			},
-			profileConfig{
-				RoleARN:    "arn:aws:iam::123456789012:role/Admin",
-				SrcProfile: "srcprof",
-			},
-			false,
-		},
-		{
-			sts.AssumeRoleOutput{
-				Credentials: &types.Credentials{
-					Expiration: aws.Time(time.Now().Add(-3600 * time.Second)),
-				},
-			},
-			profileConfig{
-				RoleARN:    "arn:aws:iam::123456789012:role/Admin",
-				SrcProfile: "srcprof",
-			},
-			true,
-		},
-	}
-	env.Home = testHomeA
-	for _, vt := range vtests {
-		err := storeCache(vt.pc, &vt.res)
-		if err != nil {
-			t.Error(err)
-		}
-		res, err := loadCache(vt.pc)
-		if err != nil {
-			if vt.expire {
-				continue
-			}
-			t.Fatal(err)
-		}
-		if *res.Credentials.AccessKeyId != *vt.res.Credentials.AccessKeyId {
-			t.Errorf("load(%q); = %v want %v", vt.pc, res, vt.res)
-		}
-		if *res.Credentials.SecretAccessKey != *vt.res.Credentials.SecretAccessKey {
-			t.Errorf("load(%q); = %v, want %v", vt.pc, res, vt.res)
-		}
-		if *res.Credentials.SessionToken != *vt.res.Credentials.SessionToken {
-			t.Errorf("load(%q); = %v, want %v", vt.pc, res, vt.res)
-		}
-	}
-	os.RemoveAll(filepath.Join(testHomeA, cacheDir))
-	os.RemoveAll(filepath.Join(testHomeB, cacheDir))
 }
