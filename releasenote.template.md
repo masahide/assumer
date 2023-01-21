@@ -26,15 +26,13 @@ wget -qO /tmp/assumer.deb https://github.com/masahide/assumer/releases/latest/do
 sudo dpkg -i /tmp/assumer.deb
 ```
 
-### macOS
+### MacOS
 
 
 ```bash
 # x86_64
-curl -sL https://github.com/masahide/assumer/releases/latest/download/darwin-amd64.tar.gz|tar xvz
-sudo mv assumer /usr/local/bin
+brew install masahide/tap/assumer-x86_64
 
-# arm (Apple silicon)
-curl -sL https://github.com/masahide/assumer/releases/latest/download/darwin-arm64.tar.gz|tar xvz
-sudo mv assumer /usr/local/bin
+# ARM (Apple silicon)
+brew install masahide/tap/assumer-arm64
 ```
