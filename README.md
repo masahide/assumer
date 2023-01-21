@@ -9,7 +9,7 @@ It provides the following functionality
 ## Assume role in `~/.aws/credentials` and execute command
 
 The `~/.aws/credentials` file should look like this:
-```toml
+```ini
 [my-profile]
 aws_access_key_id=XXX
 aws_secret_access_key=YYY
@@ -27,8 +27,8 @@ AWS_PROFILE=foo assumer <some_command> [arg1 arg2...]
 
 ## Assume roles and execute commands via AWS SSO
 
-The ~/.aws/config file should look like this:
-```toml
+The `~/.aws/config` file should look like this:
+```ini
 [default]
 sso_start_url = xxxxxxxxxxxx
 sso_region = us-west-2
