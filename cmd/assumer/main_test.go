@@ -9,8 +9,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/aws/aws-sdk-go-v2/service/sts/types"
 )
 
 const (
@@ -46,12 +44,10 @@ func TestSetEnv(t *testing.T) {
 	if err != nil {
 		t.Fatal()
 	}
-	output := &sts.GetSessionTokenOutput{
-		Credentials: &types.Credentials{
-			AccessKeyId:     aws.String("id"),
-			SecretAccessKey: aws.String("key"),
-			SessionToken:    aws.String("token"),
-		},
+	output := aws.Credentials{
+		AccessKeyID:     "id",
+		SecretAccessKey: "key",
+		SessionToken:    "token",
 	}
 	setEnv(cfg, output)
 	if os.Getenv("AWS_PROFILE") != "" {

@@ -59,14 +59,6 @@ type STSGetSessionToken interface {
 	GetSessionToken(ctx context.Context, params *sts.GetSessionTokenInput, optFns ...func(*sts.Options)) (*sts.GetSessionTokenOutput, error)
 }
 
-type assumer struct {
-	stsAPI STSGetSessionToken
-}
-
-func (a *assumer) getToken() (*sts.GetSessionTokenOutput, error) {
-	return a.stsAPI.GetSessionToken(context.TODO(), &sts.GetSessionTokenInput{})
-}
-
 func main() {
 	showVersion := false
 	flag.BoolVar(&showVersion, "version", false, "show version")
@@ -95,12 +87,11 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		a := assumer{stsAPI: sts.NewFromConfig(cfg)}
-		token, err := a.getToken()
+		cred, err := cfg.Credentials.Retrieve(context.TODO())
 		if err != nil {
 			log.Fatal(err)
 		}
-		setEnv(cfg, token)
+		setEnv(cfg, cred)
 	}
 	args := flag.Args()
 	if len(args) <= 0 {
@@ -137,12 +128,12 @@ func envExportPrint(out io.Writer, env string) {
 	}
 }
 
-func setEnv(cfg aws.Config, identify *sts.GetSessionTokenOutput) {
-	os.Unsetenv("AWS_PROFILE")                                                // nolint errcheck
-	os.Unsetenv("AWS_DEFAULT_PROFILE")                                        // nolint errcheck
-	os.Setenv("AWS_ACCESS_KEY_ID", *identify.Credentials.AccessKeyId)         // nolint errcheck
-	os.Setenv("AWS_SECRET_ACCESS_KEY", *identify.Credentials.SecretAccessKey) // nolint errcheck
-	os.Setenv("AWS_SESSION_TOKEN", *identify.Credentials.SessionToken)        // nolint errcheck
+func setEnv(cfg aws.Config, cred aws.Credentials) {
+	os.Unsetenv("AWS_PROFILE")                               // nolint errcheck
+	os.Unsetenv("AWS_DEFAULT_PROFILE")                       // nolint errcheck
+	os.Setenv("AWS_ACCESS_KEY_ID", cred.AccessKeyID)         // nolint errcheck
+	os.Setenv("AWS_SECRET_ACCESS_KEY", cred.SecretAccessKey) // nolint errcheck
+	os.Setenv("AWS_SESSION_TOKEN", cred.SessionToken)        // nolint errcheck
 	if len(cfg.Region) > 0 {
 		os.Setenv("AWS_REGION", cfg.Region) // nolint errcheck
 	}
