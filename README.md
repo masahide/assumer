@@ -31,11 +31,4 @@ $ AWS_PROFILE=foo assumer some_command [arg1 arg2...]
 Refer to "[aswrap](https://github.com/fujiwara/aswrap/blob/master/README.md#usage)" because it is the same "[usage as aswrap](https://github.com/fujiwara/aswrap/blob/master/README.md#usage)"
 
 
-## Clearing Cached Credentials
 
-When you assume a role, the `assumer` caches the temporary credentials locally until they expire. If your role's temporary credentials are revoked, you can delete the cache to force the `assumer` to retrieve new credentials.
-
-
-```bash
-rm -rf ~/.assumer/cache
-```
