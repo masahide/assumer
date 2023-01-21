@@ -11,7 +11,8 @@ assumer is useful for some commands which couldn't resolve an assume role creden
 
 For example,
 
-- Implemented with [aws-sdk-go](https://github.com/aws/aws-sdk-go)
+- Implemented with [aws-sdk-go-v2](https://github.com/aws/aws-sdk-go-v2)
+- [CDK](https://github.com/aws/aws-cdk)
 - [Terraform](https://www.terraform.io/)
 - [Packer](https://www.packer.io/)
 - [Ansible](https://www.ansible.com)
