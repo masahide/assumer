@@ -179,7 +179,7 @@ jobs:
       - name: Create homebrew Formula
         run: |
           cp pack/Formula/assumer.template.rb assumer.rb
-          sed -i -e "s/__version__/${{ steps.info.outputs.ver }}/g" assumer.rb
+          sed -i -e "s/__version__/v${{ needs.info.outputs.ver }}/g" assumer.rb
           for os in darwin linux;do
             for arch in amd64 arm64;do
               sed -i -e "s/__${os}-${arch}_sha256__/$(sha256sum .dist/${os}-${arch}.tar.gz|awk '{print $1}')/" assumer.rb
@@ -187,7 +187,8 @@ jobs:
           done
           mkdir -p ~/.ssh/
           echo "${{ secrets.BREWREPOKEY }}" >~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
-          git checkout git@github.com:masahide/homebrew-tap.git && cd homebrew-tap
-          cp ../assumer.rb Formula/
-          git commit -am"assumer v${{ steps.info.outputs.ver }}"
+          git config --global user.email "bot@github.com" && git config --global user.name "Github Actions"
+          git clone git@github.com:masahide/homebrew-tap.git && cd homebrew-tap
+          cp ../assumer.rb Formula/ && git add Formula/assumer.rb
+          git commit -am"assumer v${{ needs.info.outputs.ver }}"
           git push origin main
