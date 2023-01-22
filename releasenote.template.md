@@ -30,9 +30,6 @@ sudo dpkg -i /tmp/assumer.deb
 
 
 ```bash
-# x86_64
-brew install masahide/tap/assumer-x86_64
-
-# ARM (Apple silicon)
-brew install masahide/tap/assumer-arm64
+# x86_64 or Apple silicon (Automatic switching)  
+brew install masahide/tap/assumer
 ```
