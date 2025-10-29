@@ -70,7 +70,7 @@ jobs:
             -o .bin/${{ env.APP_NAME }} \
             ${{ env.MAIN_GO }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: bin-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
@@ -90,7 +90,7 @@ jobs:
         with:
           go-version-file: "go.mod"
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: bin-linux-${{ matrix.goarch }}
           path: .bin
@@ -119,7 +119,7 @@ jobs:
           BINPATH=".bin/${{ env.APP_NAME }}" \
           go run pack/debpack/main.go
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-packages-${{ matrix.goarch }}
           path: |
@@ -138,7 +138,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Download All Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: Create assets
         run: |
           mkdir .dist
