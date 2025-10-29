@@ -68,14 +68,14 @@ jobs:
             -o .bin/${{ env.APP_NAME }} \
             ${{ env.MAIN_GO }}
 
+      - run: |
+          echo "ls -la .bin" >> $GITHUB_STEP_SUMMARY
+          ls -la .bin >> $GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v4
         with:
           name: bin-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
-            .bin/
-      - run: |
-          echo "ls -la .bin" >> $GITHUB_STEP_SUMMARY
-          ls -la .bin >> $GITHUB_STEP_SUMMARY
+            .bin/${{ env.APP_NAME }}
 
   # build rpm, deb packages
   build-linux-packages:
@@ -91,9 +91,6 @@ jobs:
         with:
           go-version-file: "go.mod"
 
-      - run: |
-          echo "ls -la .bin" >> $GITHUB_STEP_SUMMARY
-          ls -la .bin >> $GITHUB_STEP_SUMMARY
       - uses: actions/download-artifact@v4
         with:
           name: bin-linux-${{ matrix.goarch }}
