@@ -1,3 +1,5 @@
+**Note:**以降の応答は日本語でお願いします。
+
 # Project Overview
 
 This project, `assumer`, is a command-line utility written in Go. Its primary purpose is to simplify the process of assuming AWS IAM roles, including those configured for AWS Single Sign-On (SSO). It acts as a wrapper, allowing tools that do not natively support AWS profiles to seamlessly use assumed role credentials.
