@@ -6,17 +6,15 @@ on:
     #  - 'v*.*.*'
 
 env:
-  GO_VERSION: '1.19'
-  APP_NAME: 'assumer'
-  MAIN_GO: 'cmd/assumer/main.go'
-  DESC: 'parallel ssh client'
+  APP_NAME: "assumer"
+  MAIN_GO: "cmd/assumer/main.go"
+  DESC: "parallel ssh client"
 
 jobs:
-
   info:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Get the info
         id: info
         run: |
@@ -39,11 +37,11 @@ jobs:
   go-test:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
       - name: Test
         run: |
           go test -v ./...
@@ -57,11 +55,11 @@ jobs:
         goarch: [amd64, arm64]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - name: Build
         run: |
@@ -86,11 +84,11 @@ jobs:
       matrix:
         goarch: [amd64, arm64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - uses: actions/download-artifact@v3
         with:
@@ -138,7 +136,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [info, build-linux-packages]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Download All Artifacts
         uses: actions/download-artifact@v3
       - name: Create assets
